@@ -1,0 +1,67 @@
+kind: pipeline # 定义一个管道
+#type: docker # 当前管道的类型
+name: 执行 # 当前管道的名称
+
+
+steps:
+  - name: 构建缓存
+    pull: if-not-exists # 如果镜像不存在则拉取,免去每次都要重新下载
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: cache
+        path: /drone/cache
+    settings:
+      restore: true
+      mount:
+        - /drone/nugetpackages
+  - name: 编译GO
+    image: golang
+    commands:
+      - export GO111MODULE=on
+      - export GOPROXY=https://goproxy.cn,direct
+      - go mod tidy
+      - go build main.go
+  - name: 推送镜像
+    image: plugins/docker
+    settings:
+      repo:
+        from_secret: docker_repo
+      dockerfile: ./Dockerfile
+      tags:
+        - 0.0.4
+      username: # 账号名称
+        from_secret: docker_username
+      password: # 账号密码
+        from_secret: docker_password
+    # registry: https://harbor.kikakika.com # 如果使用自建的镜像仓库，例如 Harbor，这里可以通过 registry 指定\
+  - name: 上传服务器
+    image: appleboy/drone-scp
+    settings:
+      host:
+        from_secret: server_host
+      user:
+        from_secret: server_username
+      password:
+        from_secret: server_password
+      port: 22 # 远程连接端口
+      # 转移到宿主机的某个目录下
+      target: /www/app
+      # 拷贝当前工作区内的相关的所有文件（git拉取下来的项目文件）
+      source: ./k8s.yaml
+  - name: 推送K8S
+    image: appleboy/drone-ssh
+    settings:
+      host:
+        from_secret: server_host
+      user:
+        from_secret: server_username
+      password:
+        from_secret: server_password
+      port: 22
+      command_timeout: 2m
+      script:
+        - echo ====开始部署=======
+        - sudo -i
+        - cd /www/app
+        - kubectl apply -f k8s.yaml
+        - echo ====部署成功=======
