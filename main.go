@@ -16,7 +16,7 @@ func main() {
 	url := fmt.Sprintf("localhost:%d", 3366)
 	lis, err := net.Listen("tcp", url)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("failed to list2en: %v", err)
 	}
 
 	//初始ES
