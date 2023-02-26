@@ -28,6 +28,6 @@ func main() {
 	//注册服务
 	rpc.RegisterProductServer(s, &domain.Product{})
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve:  %v", err)
+		log.Fatalf("failed to serve:   %v", err)
 	}
 }
